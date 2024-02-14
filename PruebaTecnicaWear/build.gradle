@@ -1,0 +1,117 @@
+group 'com.pruebatecnica'
+version '1.0.1'
+defaultTasks 'clean', 'test', 'aggregate'
+
+repositories {
+    mavenCentral()
+    maven {
+        url "https://plugins.gradle.org/m2/"
+    }
+}
+
+buildscript {
+    repositories {
+        mavenCentral()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath "net.serenity-bdd:serenity-gradle-plugin:2.4.24"
+        classpath "net.serenity-bdd:serenity-single-page-report:2.1.7"
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'groovy'
+apply plugin: 'idea'
+apply plugin: 'net.serenity-bdd.aggregator'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+wrapper {
+    gradleVersion = "6.8.3"
+}
+ext {
+    serenityVersion = '2.4.24'
+    serenityCucumberVersion = '2.4.24'
+    cucumberVersion = '6.10.4'
+    lombok = '1.18.12'
+    logbackVersion = '1.2.3'
+}
+
+configurations.all {
+    resolutionStrategy {
+        force "io.cucumber:cucumber-core:${cucumberVersion}"
+
+    }
+}
+
+dependencies {
+    implementation "ch.qos.logback:logback-classic:${logbackVersion}"
+    implementation "net.serenity-bdd:serenity-core:${serenityVersion}"
+    implementation "net.serenity-bdd:serenity-cucumber6:${serenityCucumberVersion}"
+    implementation "net.serenity-bdd:serenity-junit:$rootProject.ext.serenityVersion"
+    implementation "net.serenity-bdd:serenity-screenplay-rest:${serenityVersion}"
+    implementation "net.serenity-bdd:serenity-screenplay-webdriver:$rootProject.ext.serenityVersion"
+    implementation group: 'net.serenity-bdd', name: 'serenity-gradle-plugin', version: '2.0.90'
+    implementation 'net.serenity-bdd:serenity-core:2.0.81'
+    implementation group: 'net.serenity-bdd', name: 'serenity-ensure', version: '2.1.4'
+    implementation('org.assertj:assertj-core:3.8.0')
+    implementation group: 'com.microsoft.sqlserver', name: 'mssql-jdbc', version: '8.4.1.jre8'
+    implementation "org.projectlombok:lombok:${lombok}"
+    annotationProcessor "org.projectlombok:lombok:${lombok}"
+    implementation group: 'com.github.mifmif', name: 'generex', version: '1.0.1'
+    implementation group: 'org.everit.json', name: 'org.everit.json.schema', version: '1.5.1'
+    implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310', version: '2.12.1'
+    //implementation group: 'io.cucumber', name: 'cucumber-picocontainer', version: '6.10.4'
+    testImplementation "io.cucumber:cucumber-core:${cucumberVersion}"
+    testImplementation "io.cucumber:cucumber-junit:${cucumberVersion}"
+    testImplementation "io.cucumber:cucumber-java:${cucumberVersion}"
+    testImplementation("io.github.bonigarcia:webdrivermanager:4.3.1")
+}
+
+
+test {
+
+    testLogging.showStandardStreams = true
+    testLogging.exceptionFormat = 'full'
+    testLogging.showStackTraces = true
+    systemProperties System.getProperties()
+    maxParallelForks = Runtime.runtime.availableProcessors()
+
+}
+
+
+configurations {
+    cucumberRuntime.extendsFrom testRuntime
+}
+
+task cucumber() {
+    dependsOn assemble, compileTestJava
+    doLast {
+        javaexec {
+            main = "cucumber.api.cli.Main"
+            classpath = configurations.cucumberRuntime + sourceSets.main.output + sourceSets.test.output
+            args = ['--plugin', 'pretty', '--glue', 'StepDefinitions', 'src/test/resources/features']
+        }
+    }
+}
+
+
+serenity {
+    reports = ["single-page-html"]
+}
+
+compileJava.options.encoding = 'UTF-8'
+compileTestJava.options.encoding = 'UTF-8'
+gradle.startParameter.continueOnFailure = true
+test.finalizedBy(aggregate)
+
+
+
+
+
+
+
